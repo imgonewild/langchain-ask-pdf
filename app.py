@@ -9,17 +9,25 @@ from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
 import glob, os, time
 from time import strftime
+import subprocess
+from tempfile import NamedTemporaryFile
+import shutil
 
 t = strftime("%H:%M:%S %m-%d", time.localtime())
 load_dotenv()
 embeddings = OpenAIEmbeddings()
+index_folder = "./index/"
+pdf_folder = "./pdf/"
 
-def load_sds():
-    index_folder = "./index/"
+def load_sds():    
     folders = glob.glob(f"{index_folder}*")
     #remove ./index/ from begin
     folders = [folder[len(index_folder):] for folder in folders]    
     option = st.selectbox(f"Select SDS ({len(folders)})", folders, key="123")
+
+    if option!= None and st.button('Open SDS file'):
+        subprocess.Popen([f"{pdf_folder}{option}"],shell=True)
+
     return index_folder,option
 
 def ask_sds(knowledge_base, index_question):
@@ -36,6 +44,13 @@ def ask_sds(knowledge_base, index_question):
 
 def upload_sds_n_save(pdf):
     pdf_reader = PdfReader(pdf)
+    temp_pdf = ''
+    with NamedTemporaryFile(dir='.', suffix='.pdf', delete=False) as f:
+        f.write(pdf.getbuffer())
+        temp_pdf = f.name
+
+    os.rename(temp_pdf, pdf_folder + pdf.name)
+
     text = ""
     for page in pdf_reader.pages:
       text += page.extract_text()
@@ -48,10 +63,10 @@ def upload_sds_n_save(pdf):
       length_function=len
     )
     chunks = text_splitter.split_text(text)
-          
+
     filename = pdf.name
     knowledge_base = FAISS.from_texts(chunks, embeddings)
-    knowledge_base.save_local(f'./index/{filename}')
+    knowledge_base.save_local(f'{index_folder}{filename}')
     st.write(f'File {filename} upload successed!')
     # refresh page
     st.experimental_rerun()
@@ -65,17 +80,17 @@ def main():
     index_folder,option = load_sds()
 
     # load .faiss & .pkl
-    knowledge_base = FAISS.load_local(f"{index_folder}{option}", embeddings)
-    filename = os.path.basename(option)
+    if(option != None):
+      knowledge_base = FAISS.load_local(f"{index_folder}{option}", embeddings)
+      filename = os.path.basename(option)
 
-    index_question = st.text_input(f"Ask a question about {filename}")
-    print("index_question:", index_question)
+      index_question = st.text_input(f"Ask a question about {filename}")
+      print("index_question:", index_question)
 
-    # ask sds
-    ask_sds(knowledge_base, index_question)
-
+      # ask sds
+      ask_sds(knowledge_base, index_question)
+      
     # upload sds
-
     with st.form("my-form", clear_on_submit=True):
         pdf = st.file_uploader("Upload your SDS", type="pdf")
         submitted = st.form_submit_button("Upload")
@@ -83,5 +98,11 @@ def main():
         if submitted and pdf is not None:
             upload_sds_n_save(pdf)  
             
-if __name__ == '__main__':
+if __name__ == '__main__':    
+    if not os.path.exists(index_folder):
+      os.makedirs(index_folder)
+
+    if not os.path.exists(pdf_folder):
+      os.makedirs(pdf_folder)
+
     main()
