@@ -42,33 +42,36 @@ def ask_sds(knowledge_base, index_question):
           st.write(response)
           print("response:", response)
 
-def upload_sds_n_save(pdf):
-    pdf_reader = PdfReader(pdf)
-    temp_pdf = ''
-    with NamedTemporaryFile(dir='.', suffix='.pdf', delete=False) as f:
-        f.write(pdf.getbuffer())
-        temp_pdf = f.name
+def upload_sds_n_save(pdfs):
+    # print(len(pdfs))
+    for pdf in pdfs:
+      print("pdf.name:", pdf.name)
+      pdf_reader = PdfReader(pdf)
+      temp_pdf = ''
+      with NamedTemporaryFile(dir='.', suffix='.pdf', delete=False) as f:
+          f.write(pdf.getbuffer())
+          temp_pdf = f.name
+      shutil.move(temp_pdf, pdf_folder + pdf.name)
+      # os.rename(temp_pdf, pdf_folder + pdf.name)
 
-    os.rename(temp_pdf, pdf_folder + pdf.name)
+      text = ""
+      for page in pdf_reader.pages:
+        text += page.extract_text()
 
-    text = ""
-    for page in pdf_reader.pages:
-      text += page.extract_text()
+      # split into chunks
+      text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len
+      )
+      chunks = text_splitter.split_text(text)
 
-    # split into chunks
-    text_splitter = CharacterTextSplitter(
-      separator="\n",
-      chunk_size=1000,
-      chunk_overlap=200,
-      length_function=len
-    )
-    chunks = text_splitter.split_text(text)
-
-    filename = pdf.name
-    knowledge_base = FAISS.from_texts(chunks, embeddings)
-    knowledge_base.save_local(f'{index_folder}{filename}')
-    st.write(f'File {filename} upload successed!')
-    # refresh page
+      filename = pdf.name
+      knowledge_base = FAISS.from_texts(chunks, embeddings)
+      knowledge_base.save_local(f'{index_folder}{filename}')
+      st.write(f'File {filename} upload successed!')
+      # refresh page
     st.experimental_rerun()
 
 def main():
@@ -92,7 +95,7 @@ def main():
       
     # upload sds
     with st.form("my-form", clear_on_submit=True):
-        pdf = st.file_uploader("Upload your SDS", type="pdf")
+        pdf = st.file_uploader("Upload your SDS", type="pdf", accept_multiple_files=True)
         submitted = st.form_submit_button("Upload")
         # print(submitted, pdf)
         if submitted and pdf is not None:
