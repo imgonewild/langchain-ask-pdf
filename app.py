@@ -5,6 +5,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
+from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
 import glob, os, time
@@ -32,15 +33,20 @@ def load_sds():
 
 def ask_sds(knowledge_base, index_question):
     if len(index_question) != 0:
-          docs = knowledge_base.similarity_search(index_question)
-          llm = OpenAI()
-          chain = load_qa_chain(llm, chain_type="stuff")
-          with get_openai_callback() as cb:
-            response = chain.run(input_documents=docs, question=index_question)
-            # print("cb", cb)
+          
+        # chat_history = []
+        docs = knowledge_base.similarity_search(index_question)
+        llm = OpenAI()
+        #please use the format to answer question: {"question": question, "answer": answer}
+        # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        # chain = load_qa_chain(llm, chain_type="stuff", memory=memory)
+        chain = load_qa_chain(llm, chain_type="stuff")
+        with get_openai_callback() as cb:
+          response = chain.run(input_documents=docs, question=index_question)
+          # print("cb", cb)
 
-          st.write(response)
-          print("response:", response)
+        st.write(response)
+        print("response:", response)
 
 def upload_sds_n_save(pdfs):
     # print(len(pdfs))
@@ -52,7 +58,6 @@ def upload_sds_n_save(pdfs):
           f.write(pdf.getbuffer())
           temp_pdf = f.name
       shutil.move(temp_pdf, pdf_folder + pdf.name)
-      # os.rename(temp_pdf, pdf_folder + pdf.name)
 
       text = ""
       for page in pdf_reader.pages:
