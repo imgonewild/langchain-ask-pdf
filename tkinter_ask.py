@@ -16,7 +16,7 @@ import pyglet, io
 
 load_dotenv()
 vector_folder = os.getenv('VECTOR_PATH')
-parent_folder = "d:/Github_Repo/streamlit-langchain-ask-pdf/"
+parent_folder = os.getcwd() + "/"
 image_folder = parent_folder + 'img/'
 video_folder = parent_folder + 'vid/'
 
@@ -40,8 +40,8 @@ class AudioRecorderApp:
         self.img_mic = Image.open(self.mic_image_path)
         self.img_square = Image.open(self.square_image_path)
 
-        self.img_mic = self.img_mic.resize((25, 25), Image.ANTIALIAS)  # Resize the mic image to fit the button
-        self.img_square = self.img_square.resize((25, 25), Image.ANTIALIAS)  # Resize the square image to fit the button
+        self.img_mic = self.img_mic.resize((25, 25), Image.LANCZOS)  # Resize the mic image to fit the button
+        self.img_square = self.img_square.resize((25, 25), Image.LANCZOS)  # Resize the square image to fit the button
         
         self.photo_mic = ImageTk.PhotoImage(self.img_mic)
         self.photo_square = ImageTk.PhotoImage(self.img_square)
@@ -200,7 +200,7 @@ EntryBox.bind('<Return>', lambda event: send())
 EntryBox.bind("<KeyRelease>", on_entry_change)
         
 send_button_image = Image.open(image_folder+"telegram-128.ico")
-send_button_image = send_button_image.resize((25, 25), Image.ANTIALIAS)  # Resize the image if necessary
+send_button_image = send_button_image.resize((25, 25), Image.LANCZOS)  # Resize the image if necessary
 send_button_image = ImageTk.PhotoImage(send_button_image)
 
 SendButton = ttk.Button(root, image=send_button_image, command=send, )#state=tk.DISABLED
